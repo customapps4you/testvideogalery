@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns     = "http://www.w3.org/ns/widgets"
+        xmlns:gap = "http://phonegap.com/ns/1.0"
+        version   = "1.0.1"
+	    id = "br.com.customapps4you.testvideogalery"
+        versionCode="1" 
+	>
+    <name>Test Video Galery</name>
+
+    <description>
+        Test Video Galery.
+    </description>
+
+    <author>
+        Ricardo Tominaga
+    </author>
+	
+	<feature name="http://api.phonegap.com/1.0/storage"/>
+	<feature name="http://api.phonegap.com/1.0/file"/>
+	
+</widget>

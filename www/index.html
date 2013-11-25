@@ -1,0 +1,224 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
+<meta name="format-detection" content="telephone=no" />
+<meta name="viewport" content="user-scalable=yes, initial-scale=1, width=device-width, height=device-height, target-densitydpi=device-dpi" />
+<title>Test Video Galery</title>
+</head>
+
+<body>
+	<input type="button" value="Update Videos" onclick="updateVideos()"/>
+	<input type="button" value="List Videos" onclick="listVideos()"/>	
+	
+	<div id="imgdiv">
+	</div>
+	
+		<script>
+		
+			// DB info standard: "simpledb", "1.0", "simpledb", 200000
+			function DB(){
+				return window.openDatabase('simpledb', '1.0', 'simpledb', 200000);
+			}
+			
+			// calls callback/failback when finished
+			function recreateDB(callback,failback){
+				DB().transaction(populateDB, 
+					function (err){console.log('Error populating DB: '+err.code); failback('Error populating DB: '+err.code);}, 
+					function (suc){console.log('Success populating DB!'); callback('Success populating DB!');}
+				);
+			}
+			
+			// calls callback/failback when finished
+			function recreateVIDEOS(callback,failback){
+				DB().transaction(populateVIDEOS, 
+					function (err){console.log('Error populating VIDEOS: '+err.code); failback('Error populating VIDEOS: '+err.code);}, 
+					function (suc){console.log('Success populating VIDEOS!'); callback('Success populating VIDEOS!');}
+				);
+			}
+			
+			// drops and creates base tables
+			function populateDB(tx) {
+				populateVIDEOS(tx);
+				populateIMGS(tx);
+				populatePROFS(tx);
+			}
+			
+			// drops and creates VIDEOS
+			function populateVIDEOS(tx) {
+				tx.executeSql('DROP TABLE IF EXISTS VIDEOS');
+                tx.executeSql('CREATE TABLE IF NOT EXISTS VIDEOS (id unique, title, video, thumbnail)');			
+			}
+			
+			// drops and creates IMGS
+			function populateIMGS(tx) {
+                tx.executeSql('DROP TABLE IF EXISTS IMGS');				
+                tx.executeSql('CREATE TABLE IF NOT EXISTS IMGS (blobid unique, blobkey, title, description)');				
+			}
+			
+			// drops and creates PROFS
+			function populatePROFS(tx) {
+                tx.executeSql('DROP TABLE IF EXISTS PROFS');				
+                tx.executeSql('CREATE TABLE IF NOT EXISTS PROFS (blobid unique, blobkey, title, description)');			
+			}
+
+			// get table hash
+			function hashTable(table,callback,failback){
+				DB().transaction(
+					function (tx){
+						tx.executeSql('SELECT id FROM '+table+' ORDER BY id ASC', [], 
+							function (tx,results){
+								// success retrieving ids
+								var len = results.rows.length;
+								var unHash = '';
+								for (var i=0; i<len; i++){
+									unHash += results.rows.item(i).id;
+								}
+								// call callback passing hash		
+								callback(calcMD5(unhash));
+							}, 
+							function (err){console.log('Error querying '+table+' hash: '+err.code); failback('Error querying '+table+' hash: '+err.code)});	
+					}, 
+					function (err){console.log('Error getting '+table+' hash: '+err.code); failback('Error getting '+table+' hash: '+err.code);}, 
+					function (suc){console.log('Success getting '+table+' hash!');}
+				);
+			}
+			
+			// get videos list
+			function retrieveVideos(callback,failback){
+				$.getJSON('http://customapps4you.appspot.com/json/listvalidvideos', function(data){
+					var items = data.elems;
+					callback(items);
+				}).fail(failback);
+			}
+			
+			// input videos list
+			function inputVideos(items,callback,failback){
+				function inputVideosTx(tx){
+					for(var i=0;i<items.length;i++){
+						var item = items[i];
+						tx.executeSql('INSERT INTO DEMO (id, title, video, thumbnail) VALUES ('+item.id+','+item.title+','+item.video+','+item.thumbnail+')');
+					}
+				}
+				DB().transaction(inputVideosTx,
+					function (err){console.log('Error inputing videos: '+err.code); failback('Error inputing videos: '+err.code);}, 
+					function (suc){console.log('Success inputing videos!'); callback('Success inputing videos!');}
+				);
+			}
+				
+			// get videos hash
+			function hashVideos(callback,failback){
+				$.getJSON('http://customapps4you.appspot.com/json/hashvideos', function(data){
+					var hash = data.hash;
+					callback(hash);
+				}).fail(failback);
+			}
+			
+			// is necessary to update videos?
+			function isUpdateVideos(callback,failback){
+				hashTable('VIDEOS',function (hash1){
+					hashVideos(function (hash2){
+						console.log('Debug isUpdateVideos hash1: '+hash1+', hash2: '+hash2);
+						callback(hash1!=hash2);
+					},failback);
+				},failback);
+			}
+			
+			// put imgs on cache
+			function cacheImg(src, imgArray, callback){
+				// debug this method
+				console.log('Caching src: '+src);
+				ImgCache.isCached(src, function(path, success){
+					if(!success){
+						ImgCache.cacheFile(src,function(){
+							if(imgArray.length>0){
+								var newSrc = imgArray.pop();
+								cacheImg(newSrc,imgArray,callback);
+							}else{
+								callback();
+							}
+						});
+					}else{
+						if(imgArray.length>0){
+							var newSrc = imgArray.pop();
+							cacheImg(newSrc,imgArray,callback);
+						}else{
+							callback();
+						}
+					}
+				});
+			}		
+			
+			// video update routine
+			function videoUpdateRoutine(callback,failback){
+				isUpdateVideos(function (updateNeeded){
+					if(updateNeeded){
+						recreateVIDEOS(function(){
+							retrieveVideos(function (items){
+								inputVideos(items,function(){
+									var imgArray = [];
+									for(var i=0;i<items.length;i++){
+										imgArray.push(items[i].thumbnail);
+									}
+									var firstSrc = imgArray.pop();
+									cacheImg(firstSrc,imgArray,callback);
+								},failback);
+							},failback);
+						},						
+						failback);
+					}else{
+						callback('Videos are already up-to-date!');
+					}
+				},failback);
+			}
+			
+			function updateVideos(){
+				videoUpdateRoutine(function(e){
+					alert('[SUCCESS] '+e);
+				}, function(e){
+					alert('[FAILURE] '+e);
+				});
+			}
+			
+			function listVideos(){
+				DB().transaction(
+					function (tx){
+						tx.executeSql('SELECT thumbnail FROM VIDEOS ORDER BY id ASC', [], 
+							function (tx,results){
+								for(var i=0;i<results.rows.length;i++){
+									var target = $('<img src="" alt=""/>').appendTo('#imgdiv');
+									ImgCache.useCachedFileWithSource(target, results.rows.item(i).thumbnail, function(){
+										console.log('Now using local copy');
+									}, function(){
+										console.log('Could not load from cache');
+									});								
+								}
+							}, 
+							function (err){console.log('Error querying VIDEOS thumbnails: '+err.code)});	
+					}, 
+					function (err){console.log('Error getting VIDEOS thumbnails: '+err.code);}, 
+					function (suc){console.log('Success getting VIDEOS thumbnails!');}
+				);
+			}
+			
+            document.addEventListener('deviceready', function() {
+				recreateDB(function(){
+					// Set cache to show debugging
+					ImgCache.options.debug = true;
+					ImgCache.init(function(){
+						alert('Cache and DB OK!');
+					}, function(){
+						alert('Problems with Cache or DB!');
+					});				
+				}	
+				,function(e){console.log(e);});
+			}, false);
+			
+        </script>
+	
+	<script type="text/javascript" src="js/hashing.js"></script>
+	<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
+	<script type="text/javascript" src="js/imgcache.js"></script>
+	<script type="text/javascript" src="phonegap.js"></script>	
+</body>
+</html>
