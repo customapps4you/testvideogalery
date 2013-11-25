@@ -16,9 +16,9 @@
 	
 		<script>
 		
-			// DB info standard: "simpledb", "1.0", "simpledb", 200000
+			// DB info standard: "testdb", "1.0", "testdb", 200000
 			function DB(){
-				return window.openDatabase('simpledb', '1.0', 'simpledb', 200000);
+				return window.openDatabase('testdb', '1.0', 'testdb', 200000);
 			}
 			
 			// calls callback/failback when finished
@@ -47,7 +47,8 @@
 			// drops and creates VIDEOS
 			function populateVIDEOS(tx) {
 				tx.executeSql('DROP TABLE IF EXISTS VIDEOS');
-                tx.executeSql('CREATE TABLE IF NOT EXISTS VIDEOS (id unique, title, video, thumbnail)');			
+                tx.executeSql('CREATE TABLE IF NOT EXISTS VIDEOS (id unique, title, video, thumbnail)');
+				//tx.executeSql('INSERT INTO VIDEOS (id, title, video, thumbnail) VALUES (1,"a","b","c")');				
 			}
 			
 			// drops and creates IMGS
@@ -97,7 +98,7 @@
 				function inputVideosTx(tx){
 					for(var i=0;i<items.length;i++){
 						var item = items[i];
-						tx.executeSql('INSERT INTO DEMO (id, title, video, thumbnail) VALUES ('+item.id+','+item.title+','+item.video+','+item.thumbnail+')');
+						tx.executeSql('INSERT INTO VIDEOS (id, title, video, thumbnail) VALUES ('+item.id+','+item.title+','+item.video+','+item.thumbnail+')');
 					}
 				}
 				DB().transaction(inputVideosTx,
