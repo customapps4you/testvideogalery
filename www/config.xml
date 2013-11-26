@@ -21,4 +21,9 @@
 	
 	<access origin="*" />
 	
+	<gap:plugin name="com.phonegap.plugins.facebookconnect">
+		<param name="APP_ID" value="586721204714930" />
+		<param name="APP_NAME" value="testfbso" />
+	</gap:plugin>
+	
 </widget>

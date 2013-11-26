@@ -13,8 +13,14 @@
 	<input type="button" value="List Profs" onclick="listProfs()"/>
 	<input type="button" value="Force DB and Cache Initial State" onclick="forceInitialState()"/>	
 	
-	<div id="imgdiv">
-	</div>
+	<input type="button" value="Login FB" onclick="doLogin()"/>
+	<input type="button" value="Logout FB" onclick="doLogout()"/>
+	<input type="button" value="Checkin FB" onclick="doCheckin()"/>
+	<input type="button" value="Checkin Count" onclick="doCheckins()"/>
+	
+	<div id="imgdiv"><!-- placement of images --></div>
+	
+	<div id="fb-root"><!-- necessary for fb to work properly--></div>
 	
 		<script>
 		
@@ -502,7 +508,235 @@
 					failback('Error regularDBandCacheRoutine: '+e);
 				});
 			}
-						
+			
+			// FB app id
+			function getAppID(){
+				return '586721204714930';
+			}
+			
+			// FB init should be ran on deviceready
+			function initFB(){
+				FB.init({ appId: getAppID(), nativeInterface: CDV.FB, useCachedDialogs: false });	
+			}
+			
+			// is user logged in FB?
+			function isLoggedInFB(callback) {
+                FB.getLoginStatus(function(response) {
+                    if (response.status == 'connected') {
+                        callback(true);
+                    } else {
+                        callback(false);
+                    }
+                });
+            }
+			
+			// check if logged in, if not then try to log in, if login fails callback(false)
+			function loginFB(callback) {
+				isLoggedInFB(function(e){
+					if(!e){
+						FB.login(
+							function(response) {
+								if (response.session) {
+									callback(true);
+								} else {
+									callback(false);
+								}								
+							},
+							{ scope: "email,user_checkins,publish_stream" }
+						);
+					}else{
+						callback(true);
+					}
+				});                
+            }
+			
+			// check if logged in, if yes then log out
+			function logoutFB(callback) {
+				isLoggedInFB(function(e){
+					if(e){
+						FB.logout(function(response) {
+							// Hack to effectively log out
+							FB.Auth.setAuthResponse(null, 'unknown');	
+							callback();
+                        });
+					}else{
+						callback();
+					}
+				}	
+			}
+			
+			// get checkin message
+			function checkinMessage(callback,failback){
+				$.getJSON('http://customapps4you.appspot.com/json/checkinmessage', function(data){
+					var checkinmessage = data.checkinmessage;
+					callback(checkinmessage);
+				}).fail(failback);
+			}
+
+			// get checkin place
+			function checkinPlace(callback,failback){
+				$.getJSON('http://customapps4you.appspot.com/json/checkinplace', function(data){
+					var checkinplace = data.checkinplace;
+					callback(checkinplace);
+				}).fail(failback);
+			}			
+			
+			// can user checkin?
+			function canUserCheckin(callback,failback,email){
+				$.getJSON('http://customapps4you.appspot.com/json/cancheckinuser?email='+email, function(data){
+					var cancheckin = data.cancheckin;
+					callback(cancheckin==1);
+				}).fail(failback);
+			}
+			
+			// update checkin count
+			function updateCheckinCount(callback,failback,email){
+				$.getJSON('http://customapps4you.appspot.com/json/checkinuser?email='+email, function(data){
+					var checkins = data.checkins;
+					callback(checkins);
+				}).fail(failback);
+			}
+			
+			// update user
+			function updateUser(callback,failback,email){
+				$.getJSON('http://customapps4you.appspot.com/json/updateuser?email='+email, function(data){
+					var id = data.id;
+					callback(id);
+				}).fail(failback);
+			}
+			
+			// get checkin count
+			function checkinCount(callback,failback,email){
+				$.getJSON('http://customapps4you.appspot.com/json/checkinsuser?email='+email, function(data){
+					var checkins = data.checkins;
+					callback(checkins);
+				}).fail(failback);
+			}
+			
+			// perform checkin post
+			function checkinPost(callback,failback) {
+				checkinMessage(function(msg){
+					var checkinInfos = {};
+					checkinInfos.msg = msg;
+					checkinPlace(function(place){
+						checkinInfos.place = place;
+						// debug checkin infos
+						console.log(checkinInfos);
+						console.log('Try to perform checkin post...');
+						FB.api('/me/feed', 'post', {message: checkinInfos.msg, place: checkinInfos.place}, function(response) {
+							if (response.error) {
+								console.log('Failed to post checkin! '+response.error);
+								failback('Failed to post checkin! '+response.error);
+							} else {
+								console.log('Successful checkin!');
+								callback('Successful checkin!');
+							}		
+						});
+					}, function(){
+						console.log('Failed to get checkinPlace!');
+						failback('Failed to get checkinPlace!');
+					});
+				},function(){
+					console.log('Failed to get checkinMessage!');
+					failback('Failed to get checkinMessage!');			
+				});			    
+			}
+			
+			// get user FB email
+			function getUserFBEmail(callback){
+				FB.api('/me', function(response) {
+					callback(response.email);
+				});
+			}
+			
+			// checkin routine
+			function checkinRoutine(callback,failback,noconnectionback){
+				if(isConnected()){
+					loginFB(function(isLoggedIn){
+						if(isLoggedIn){
+							console.log('Logged in, lets get the email...');
+							getUserFBEmail(function(email){
+								console.log('Can the user checkin?');
+								canUserCheckin(function(e){
+									console.log('Yes! Lets try to checkin...');
+									checkinPost(function(){
+										console.log('Post succeeded! Lets add one to the user...');
+										updateCheckinCount(function(checkins){
+											console.log('Checkin count updated: '+checkins);
+											callback(checkins);
+										}, function(){
+											console.log('Problems to update checkin count!');
+											failback('Problems to update checkin count!');
+										}										
+										,email);
+									}, function(e){
+										console.log('Failed to post checkin: '+e);
+										failback('Failed to post checkin: '+e);
+									});
+								}, function(e){
+									console.log('No! Has to wait some more time...');
+									failback('Problem with ckeckin!');
+								}, email);
+							});
+						}else{
+							console.log('Impossible to log in to FB!');
+							failback('Impossible to log in to FB!');
+						}
+					});
+				}else{
+					noconnectionback('No internet connection!');
+				}
+			}
+			
+			// checkins routine
+			function checkinsRoutine(callback,failback,noconnectionback){
+				if(isConnected()){
+					loginFB(function(isLoggedIn){
+						if(isLoggedIn){
+							console.log('Logged in, lets get the email...');
+							getUserFBEmail(function(email){
+								checkinCount(function(x){
+									callback(x);
+								}, function(e){
+									failback(e);
+								}, email);
+							});
+						}else{
+							console.log('Impossible to log in to FB!');
+							failback('Impossible to log in to FB!');
+						}
+					});
+				}else{
+					noconnectionback('No internet connection!');
+				}
+			}
+			
+			// SPECIFIC CODE
+			
+			function doLogin(){
+				loginFB(function(isLoggedIn){
+					if(isLoggedIn){
+						alert('LoggedIn!');
+					}else{
+						alert('NOT loggedIn!');
+					}
+				});
+			}
+			
+			function doLogout(){
+				logoutFB(function(){
+					alert('LoggedOut!')
+				});
+			}
+			
+			function doCheckin(){
+				checkinRoutine(function(e){alert(e);},function(e){alert(e);},function(e){alert(e);});
+			}
+			
+			function doCheckins(){
+				checkinRoutine(function(e){alert('You have '+e+' checkins!');},function(e){alert(e);},function(e){alert(e);});
+			}
+			
 			function listVideos(){
 				DB().transaction(
 					function (tx){
@@ -575,6 +809,7 @@
 			
             document.addEventListener('deviceready', function() {
 				regularDBandCacheRoutine(function(e){alert(e);},function(e){alert(e);},function(e){alert(e);});
+				initFB();
 			}, false);
 			
 			document.addEventListener('resume', function() {
@@ -587,6 +822,8 @@
 			
         </script>
 	
+	<script src="js/cdv-plugin-fb-connect.js"></script>
+	<script src="js/facebook-js-sdk.js"></script>
 	<script type="text/javascript" src="js/hashing.js"></script>
 	<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
 	<script type="text/javascript" src="js/imgcache.js"></script>
