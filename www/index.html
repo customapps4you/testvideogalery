@@ -477,7 +477,7 @@
 			
 			// check if connected to internet
 			function isConnected(){
-				navigator.network.connection.type != Connection.NONE;
+				return navigator.network.connection.type != Connection.NONE;
 			}
 			
 			// routine to run on deviceready or on resume or on online or on page transitions to galeries
