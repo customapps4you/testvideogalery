@@ -9,7 +9,8 @@
 
 <body>
 	<input type="button" value="Update Videos" onclick="updateVideos()"/>
-	<input type="button" value="List Videos" onclick="listVideos()"/>	
+	<input type="button" value="List Videos" onclick="listVideos()"/>
+	<input type="button" value="Recreate DB and Cache" onclick="recreateDBandCache()"/>	
 	
 	<div id="imgdiv">
 	</div>
@@ -47,8 +48,7 @@
 			// drops and creates VIDEOS
 			function populateVIDEOS(tx) {
 				tx.executeSql('DROP TABLE IF EXISTS VIDEOS');
-                tx.executeSql('CREATE TABLE IF NOT EXISTS VIDEOS (id unique, title, video, thumbnail)');
-				//tx.executeSql('INSERT INTO VIDEOS (id, title, video, thumbnail) VALUES (1,"a","b","c")');				
+                tx.executeSql('CREATE TABLE IF NOT EXISTS VIDEOS (id unique, title, video, thumbnail)');				
 			}
 			
 			// drops and creates IMGS
@@ -76,7 +76,7 @@
 									unHash += results.rows.item(i).id;
 								}
 								// call callback passing hash		
-								callback(calcMD5(unhash));
+								callback(calcMD5(unHash));
 							}, 
 							function (err){console.log('Error querying '+table+' hash: '+err.code); failback('Error querying '+table+' hash: '+err.code)});	
 					}, 
@@ -98,7 +98,10 @@
 				function inputVideosTx(tx){
 					for(var i=0;i<items.length;i++){
 						var item = items[i];
-						tx.executeSql('INSERT INTO VIDEOS (id, title, video, thumbnail) VALUES ('+item.id+','+item.title+','+item.video+','+item.thumbnail+')');
+						var insertClause = 'INSERT INTO VIDEOS (id, title, video, thumbnail) VALUES ('+item.id+',"'+item.title+'","'+item.video+'","'+item.thumbnail+'")';
+						// debug insert clause
+						console.log(insertClause);
+						tx.executeSql(insertClause);
 					}
 				}
 				DB().transaction(inputVideosTx,
@@ -158,6 +161,8 @@
 							retrieveVideos(function (items){
 								inputVideos(items,function(){
 									var imgArray = [];
+									// debug items
+									console.log(items);
 									for(var i=0;i<items.length;i++){
 										imgArray.push(items[i].thumbnail);
 									}
@@ -186,6 +191,7 @@
 					function (tx){
 						tx.executeSql('SELECT thumbnail FROM VIDEOS ORDER BY id ASC', [], 
 							function (tx,results){
+								$('#imgdiv').empty();
 								for(var i=0;i<results.rows.length;i++){
 									var target = $('<img src="" alt=""/>').appendTo('#imgdiv');
 									ImgCache.useCachedFileWithSource(target, results.rows.item(i).thumbnail, function(){
@@ -202,17 +208,31 @@
 				);
 			}
 			
-            document.addEventListener('deviceready', function() {
+			function recreateDBandCache(){
 				recreateDB(function(){
-					// Set cache to show debugging
-					ImgCache.options.debug = true;
-					ImgCache.init(function(){
-						alert('Cache and DB OK!');
+					ImgCache.clearCache(function(){
+						// Set cache to show debugging
+						ImgCache.options.debug = true;
+						ImgCache.init(function(){
+							console.log('Cache and DB OK!');
+						}, function(){
+							console.log('Problems with Cache or DB!');
+						});
 					}, function(){
-						alert('Problems with Cache or DB!');
+						console.log('Problems with clearing cache!');
 					});				
 				}	
-				,function(e){console.log(e);});
+				,function(e){console.log(e);});	
+			}
+			
+            document.addEventListener('deviceready', function() {
+				// Set cache to show debugging
+				ImgCache.options.debug = true;
+				ImgCache.init(function(){
+					console.log('Cache OK!');
+				}, function(){
+					console.log('Problems with Cache!');
+				});
 			}, false);
 			
         </script>
