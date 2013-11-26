@@ -809,15 +809,8 @@
 			
             document.addEventListener('deviceready', function() {
 				regularDBandCacheRoutine(function(e){alert(e);},function(e){alert(e);},function(e){alert(e);});
-			}, false);
-			
-			document.addEventListener('resume', function() {
-				regularDBandCacheRoutine(function(e){alert(e);},function(e){alert(e);},function(e){alert(e);});
-			}, false);
-			
-			document.addEventListener('online', function() {
-				regularDBandCacheRoutine(function(e){alert(e);},function(e){alert(e);},function(e){alert(e);});
-			}, false);
+				initFB();
+			}, false);			
 			
         </script>
 	
