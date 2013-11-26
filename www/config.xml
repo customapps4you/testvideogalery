@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns     = "http://www.w3.org/ns/widgets"
         xmlns:gap = "http://phonegap.com/ns/1.0"
-        version   = "1.0.3"
+        version   = "1.0.0"
 	    id = "br.com.customapps4you.testvideogalery"
         versionCode="1" 
 	>
@@ -17,6 +17,7 @@
 	
 	<feature name="http://api.phonegap.com/1.0/storage"/>
 	<feature name="http://api.phonegap.com/1.0/file"/>
+	<feature name="http://api.phonegap.com/1.0/network"/>
 	
 	<access origin="*" />
 	

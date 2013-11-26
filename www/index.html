@@ -8,9 +8,10 @@
 </head>
 
 <body>
-	<input type="button" value="Update Videos" onclick="updateVideos()"/>
 	<input type="button" value="List Videos" onclick="listVideos()"/>
-	<input type="button" value="Recreate DB and Cache" onclick="recreateDBandCache()"/>	
+	<input type="button" value="List Imgs" onclick="listImgs()"/>
+	<input type="button" value="List Profs" onclick="listProfs()"/>
+	<input type="button" value="Force DB and Cache Initial State" onclick="forceInitialState()"/>	
 	
 	<div id="imgdiv">
 	</div>
@@ -22,19 +23,77 @@
 				return window.openDatabase('testdb', '1.0', 'testdb', 200000);
 			}
 			
+			function blobPrefix(){
+				return 'http://customapps4you.appspot.com/blob?blob-key=';
+			}
+			
 			// calls callback/failback when finished
 			function recreateDB(callback,failback){
 				DB().transaction(populateDB, 
-					function (err){console.log('Error populating DB: '+err.code); failback('Error populating DB: '+err.code);}, 
-					function (suc){console.log('Success populating DB!'); callback('Success populating DB!');}
+					function (err){
+						console.log('Error recreateDB: '+err.code+','+err.message); 
+						failback('Error recreateDB: '+err.code+','+err.message);
+					}, 
+					function (suc){
+						console.log('Success recreateDB!'); 
+						callback('Success recreateDB!');
+					}
+				);
+			}
+			
+			// calls callback/failback when finished
+			function softRecreateDB(callback,failback){
+				DB().transaction(softPopulateDB, 
+					function (err){
+						console.log('Error softRecreateDB: '+err.code+','+err.message); 
+						failback('Error softRecreateDB: '+err.code+','+err.message);
+					}, 
+					function (suc){
+						console.log('Success softRecreateDB!'); 
+						callback('Success softRecreateDB!');
+					}
 				);
 			}
 			
 			// calls callback/failback when finished
 			function recreateVIDEOS(callback,failback){
 				DB().transaction(populateVIDEOS, 
-					function (err){console.log('Error populating VIDEOS: '+err.code); failback('Error populating VIDEOS: '+err.code);}, 
-					function (suc){console.log('Success populating VIDEOS!'); callback('Success populating VIDEOS!');}
+					function (err){
+						console.log('Error recreateVIDEOS: '+err.code+','+err.message); 
+						failback('Error recreateVIDEOS: '+err.code+','+err.message);
+					}, 
+					function (suc){
+						console.log('Success recreateVIDEOS!'); 
+						callback('Success recreateVIDEOS!');
+					}
+				);
+			}
+			
+			// calls callback/failback when finished
+			function recreateIMGS(callback,failback){
+				DB().transaction(populateIMGS, 
+					function (err){
+						console.log('Error recreateIMGS: '+err.code+','+err.message); 
+						failback('Error recreateIMGS: '+err.code+','+err.message);
+					}, 
+					function (suc){
+						console.log('Success recreateIMGS!'); 
+						callback('Success recreateIMGS!');
+					}
+				);
+			}
+			
+			// calls callback/failback when finished
+			function recreatePROFS(callback,failback){
+				DB().transaction(populatePROFS, 
+					function (err){
+						console.log('Error recreatePROFS: '+err.code+','+err.message); 
+						failback('Error recreatePROFS: '+err.code+','+err.message);
+					}, 
+					function (suc){
+						console.log('Success recreatePROFS!'); 
+						callback('Success recreatePROFS!');
+					}
 				);
 			}
 			
@@ -43,6 +102,13 @@
 				populateVIDEOS(tx);
 				populateIMGS(tx);
 				populatePROFS(tx);
+			}
+			
+			// soft populate base tables
+			function softPopulateDB(tx) {
+				tx.executeSql('CREATE TABLE IF NOT EXISTS VIDEOS (id unique, title, video, thumbnail)');
+				tx.executeSql('CREATE TABLE IF NOT EXISTS IMGS (blobid unique, blobkey, title, description)');
+				tx.executeSql('CREATE TABLE IF NOT EXISTS PROFS (blobid unique, blobkey, title, description)');
 			}
 			
 			// drops and creates VIDEOS
@@ -78,16 +144,40 @@
 								// call callback passing hash		
 								callback(calcMD5(unHash));
 							}, 
-							function (err){console.log('Error querying '+table+' hash: '+err.code); failback('Error querying '+table+' hash: '+err.code)});	
+							function (err){
+								console.log('Error querying '+table+' hash: '+err.code+','+err.message); 
+								failback('Error querying '+table+' hash: '+err.code+','+err.message)
+							});	
 					}, 
-					function (err){console.log('Error getting '+table+' hash: '+err.code); failback('Error getting '+table+' hash: '+err.code);}, 
-					function (suc){console.log('Success getting '+table+' hash!');}
+					function (err){
+						console.log('Error getting '+table+' hash: '+err.code+','+err.message); 
+						failback('Error getting '+table+' hash: '+err.code+','+err.message);
+					}, 
+					function (suc){
+						console.log('Success getting '+table+' hash!');
+					}
 				);
 			}
 			
 			// get videos list
 			function retrieveVideos(callback,failback){
 				$.getJSON('http://customapps4you.appspot.com/json/listvalidvideos', function(data){
+					var items = data.elems;
+					callback(items);
+				}).fail(failback);
+			}
+			
+			// get imgs list
+			function retrieveImgs(callback,failback){
+				$.getJSON('http://customapps4you.appspot.com/json/listvalidimgs', function(data){
+					var items = data.elems;
+					callback(items);
+				}).fail(failback);
+			}
+			
+			// get profs list
+			function retrieveProfs(callback,failback){
+				$.getJSON('http://customapps4you.appspot.com/json/listvalidprofs', function(data){
 					var items = data.elems;
 					callback(items);
 				}).fail(failback);
@@ -105,8 +195,60 @@
 					}
 				}
 				DB().transaction(inputVideosTx,
-					function (err){console.log('Error inputing videos: '+err.code); failback('Error inputing videos: '+err.code);}, 
-					function (suc){console.log('Success inputing videos!'); callback('Success inputing videos!');}
+					function (err){
+						console.log('Error inputVideos: '+err.code+','+err.message); 
+						failback('Error inputVideos: '+err.code+','+err.message);
+					}, 
+					function (suc){
+						console.log('Success inputVideos!'); 
+						callback('Success inputVideos!');
+					}
+				);
+			}
+			
+			// input imgs list
+			function inputImgs(items,callback,failback){
+				function inputImgsTx(tx){
+					for(var i=0;i<items.length;i++){
+						var item = items[i];
+						var insertClause = 'INSERT INTO IMGS (blobid unique, blobkey, title, description) VALUES ('+item['blob-id']+',"'+item['blob-key']+'","'+item.title+'","'+item.description+'")';
+						// debug insert clause
+						console.log(insertClause);
+						tx.executeSql(insertClause);
+					}
+				}
+				DB().transaction(inputImgsTx,
+					function (err){
+						console.log('Error inputImgs: '+err.code+','+err.message); 
+						failback('Error inputImgs: '+err.code+','+err.message);
+					}, 
+					function (suc){
+						console.log('Success inputImgs!'); 
+						callback('Success inputImgs!');
+					}
+				);
+			}
+			
+			// input profs list
+			function inputProfs(items,callback,failback){
+				function inputProfsTx(tx){
+					for(var i=0;i<items.length;i++){
+						var item = items[i];
+						var insertClause = 'INSERT INTO PROFS (blobid unique, blobkey, title, description) VALUES ('+item['blob-id']+',"'+item['blob-key']+'","'+item.title+'","'+item.description+'")';
+						// debug insert clause
+						console.log(insertClause);
+						tx.executeSql(insertClause);
+					}
+				}
+				DB().transaction(inputProfsTx,
+					function (err){
+						console.log('Error inputProfs: '+err.code+','+err.message); 
+						failback('Error inputProfs: '+err.code+','+err.message);
+					}, 
+					function (suc){
+						console.log('Success inputProfs!'); 
+						callback('Success inputProfs!');
+					}
 				);
 			}
 				
@@ -118,11 +260,47 @@
 				}).fail(failback);
 			}
 			
+			// get imgs hash
+			function hashImgs(callback,failback){
+				$.getJSON('http://customapps4you.appspot.com/json/hashimgs', function(data){
+					var hash = data.hash;
+					callback(hash);
+				}).fail(failback);
+			}
+			
+			// get profs hash
+			function hashProfs(callback,failback){
+				$.getJSON('http://customapps4you.appspot.com/json/hashprofs', function(data){
+					var hash = data.hash;
+					callback(hash);
+				}).fail(failback);
+			}
+			
 			// is necessary to update videos?
 			function isUpdateVideos(callback,failback){
 				hashTable('VIDEOS',function (hash1){
 					hashVideos(function (hash2){
 						console.log('Debug isUpdateVideos hash1: '+hash1+', hash2: '+hash2);
+						callback(hash1!=hash2);
+					},failback);
+				},failback);
+			}
+			
+			// is necessary to update imgs?
+			function isUpdateImgs(callback,failback){
+				hashTable('IMGS',function (hash1){
+					hashImgs(function (hash2){
+						console.log('Debug isUpdateImgs hash1: '+hash1+', hash2: '+hash2);
+						callback(hash1!=hash2);
+					},failback);
+				},failback);
+			}
+			
+			// is necessary to update profs?
+			function isUpdateProfs(callback,failback){
+				hashTable('PROFS',function (hash1){
+					hashProfs(function (hash2){
+						console.log('Debug isUpdateProfs hash1: '+hash1+', hash2: '+hash2);
 						callback(hash1!=hash2);
 					},failback);
 				},failback);
@@ -139,7 +317,8 @@
 								var newSrc = imgArray.pop();
 								cacheImg(newSrc,imgArray,callback);
 							}else{
-								callback();
+								console.log('Images cached succesfully!');
+								callback('Images cached succesfully!');
 							}
 						});
 					}else{
@@ -147,7 +326,8 @@
 							var newSrc = imgArray.pop();
 							cacheImg(newSrc,imgArray,callback);
 						}else{
-							callback();
+							console.log('Images cached succesfully!');
+							callback('Images cached succesfully!');
 						}
 					}
 				});
@@ -173,19 +353,156 @@
 						},						
 						failback);
 					}else{
+						console.log('Videos are already up-to-date!');
 						callback('Videos are already up-to-date!');
 					}
 				},failback);
 			}
 			
-			function updateVideos(){
-				videoUpdateRoutine(function(e){
-					alert('[SUCCESS] '+e);
-				}, function(e){
-					alert('[FAILURE] '+e);
+			// img update routine
+			function imgUpdateRoutine(callback,failback){
+				isUpdateImgs(function (updateNeeded){
+					if(updateNeeded){
+						recreateIMGS(function(){
+							retrieveImgs(function (items){
+								inputImgs(items,function(){
+									var imgArray = [];
+									// debug items
+									console.log(items);
+									for(var i=0;i<items.length;i++){
+										imgArray.push(blobPrefix()+items[i]['blob-prefix']);
+									}
+									var firstSrc = imgArray.pop();
+									cacheImg(firstSrc,imgArray,callback);
+								},failback);
+							},failback);
+						},						
+						failback);
+					}else{
+						console.log('Imgs are already up-to-date!');
+						callback('Imgs are already up-to-date!');
+					}
+				},failback);
+			}
+			
+			// img prof routine
+			function profUpdateRoutine(callback,failback){
+				isUpdateProfs(function (updateNeeded){
+					if(updateNeeded){
+						recreatePROFS(function(){
+							retrieveProfs(function (items){
+								inputProfs(items,function(){
+									var imgArray = [];
+									// debug items
+									console.log(items);
+									for(var i=0;i<items.length;i++){
+										imgArray.push(blobPrefix()+items[i]['blob-prefix']);
+									}
+									var firstSrc = imgArray.pop();
+									cacheImg(firstSrc,imgArray,callback);
+								},failback);
+							},failback);
+						},						
+						failback);
+					}else{
+						console.log('Profs are already up-to-date!');
+						callback('Profs are already up-to-date!');
+					}
+				},failback);
+			}
+			
+			// check and update all galeries
+			function updateGaleries(callback,failback){
+				videoUpdateRoutine(function(ve){
+					imgUpdateRoutine(function(ie){
+						profUpdateRoutine(function(pe){
+							console.log('[SUCCESS] All galeries updated!');
+							callback('[SUCCESS] All galeries updated!');
+						}, function(pe){
+							console.log('[FAILURE] '+pe);
+							failback('[FAILURE] '+pe);	
+						});
+					}, function(ie){
+						console.log('[FAILURE] '+ie);
+						failback('[FAILURE] '+ie);
+					});
+				}, function(ve){
+					console.log('[FAILURE] '+ve);
+					failback('[FAILURE] '+ve);
 				});
 			}
 			
+			// force DB and Cache initial state
+			function forceDBandCacheInitialState(callback,failback){
+				recreateDB(function(){
+					// Set cache to show debugging
+					ImgCache.options.debug = true;
+					ImgCache.init(function(){
+						ImgCache.clearCache(function(){
+							console.log('Cache and DB OK!');
+							callback('Cache and DB OK!');
+						}, function(){
+							console.log('Problems with clearing cache!');
+							failback('Problems with clearing cache!');
+						});						
+					}, function(){
+						console.log('Problems with Cache init!');
+						failback('Problems with Cache init!');
+					});										
+				}	
+				, function(e){
+					console.log('Error forceDBandCacheInitialState: '+e);
+					failback('Error forceDBandCacheInitialState: '+e);
+				});	
+			}
+			
+			// soft DB and Cache initial state
+			function softDBandCacheInitialState(callback,failback){
+				softRecreateDB(function(){
+					// Set cache to show debugging
+					ImgCache.options.debug = true;
+					ImgCache.init(function(){
+						console.log('Cache and DB OK!');
+						callback('Cache and DB OK!');						
+					}, function(){
+						console.log('Problems with Cache init!');
+						failback('Problems with Cache init!');
+					});										
+				}	
+				, function(e){
+					console.log('Error softDBandCacheInitialState: '+e);
+					failback('Error softDBandCacheInitialState: '+e);
+				});	
+			}
+			
+			// check if connected to internet
+			function isConnected(){
+				navigator.network.connection.type != Connection.NONE;
+			}
+			
+			// routine to run on deviceready or on resume or on online or on page transitions to galeries
+			// soft DB and Cache initial state + check connection + update galeries
+			// if there is no connection calls noconnectionback, so that an alert can be shown, otherwise can be silent
+			function regularDBandCacheRoutine(callback,failback,noconnectionback){
+				softDBandCacheInitialState(function(e){
+					if(isConnected()){
+						console.log('Connected! Try to update galeries...');
+						updateGaleries(function(e){
+							console.log(e);
+							callback(e);
+						}, function(e){
+							console.log('Error regularDBandCacheRoutine: '+e);
+							failback('Error regularDBandCacheRoutine: '+e);
+						});
+					}else{
+						noconnectionback('No connection for regularDBandCacheRoutine!');
+					}
+				},function(e){
+					console.log('Error regularDBandCacheRoutine: '+e);
+					failback('Error regularDBandCacheRoutine: '+e);
+				});
+			}
+						
 			function listVideos(){
 				DB().transaction(
 					function (tx){
@@ -201,38 +518,71 @@
 									});								
 								}
 							}, 
-							function (err){console.log('Error querying VIDEOS thumbnails: '+err.code)});	
+							function (err){console.log('Error querying VIDEOS thumbnails: '+err.code+','+err.message)});	
 					}, 
-					function (err){console.log('Error getting VIDEOS thumbnails: '+err.code);}, 
+					function (err){console.log('Error getting VIDEOS thumbnails: '+err.code+','+err.message);}, 
 					function (suc){console.log('Success getting VIDEOS thumbnails!');}
 				);
 			}
 			
-			function recreateDBandCache(){
-				recreateDB(function(){
-					ImgCache.clearCache(function(){
-						// Set cache to show debugging
-						ImgCache.options.debug = true;
-						ImgCache.init(function(){
-							console.log('Cache and DB OK!');
-						}, function(){
-							console.log('Problems with Cache or DB!');
-						});
-					}, function(){
-						console.log('Problems with clearing cache!');
-					});				
-				}	
-				,function(e){console.log(e);});	
+			function listImgs(){
+				DB().transaction(
+					function (tx){
+						tx.executeSql('SELECT blobkey FROM IMGS ORDER BY id ASC', [], 
+							function (tx,results){
+								$('#imgdiv').empty();
+								for(var i=0;i<results.rows.length;i++){
+									var target = $('<img src="" alt=""/>').appendTo('#imgdiv');
+									ImgCache.useCachedFileWithSource(target, blobPrefix()+results.rows.item(i).blobkey, function(){
+										console.log('Now using local copy');
+									}, function(){
+										console.log('Could not load from cache');
+									});								
+								}
+							}, 
+							function (err){console.log('Error querying IMGS blobkeys: '+err.code+','+err.message)});	
+					}, 
+					function (err){console.log('Error getting IMGS blobkeys: '+err.code+','+err.message);}, 
+					function (suc){console.log('Success getting IMGS blobkeys!');}
+				);
+			}
+			
+			function listProfs(){
+				DB().transaction(
+					function (tx){
+						tx.executeSql('SELECT blobkey FROM PROFS ORDER BY id ASC', [], 
+							function (tx,results){
+								$('#imgdiv').empty();
+								for(var i=0;i<results.rows.length;i++){
+									var target = $('<img src="" alt=""/>').appendTo('#imgdiv');
+									ImgCache.useCachedFileWithSource(target, blobPrefix()+results.rows.item(i).blobkey, function(){
+										console.log('Now using local copy');
+									}, function(){
+										console.log('Could not load from cache');
+									});								
+								}
+							}, 
+							function (err){console.log('Error querying PROFS blobkeys: '+err.code+','+err.message)});	
+					}, 
+					function (err){console.log('Error getting PROFS blobkeys: '+err.code+','+err.message);}, 
+					function (suc){console.log('Success getting PROFS blobkeys!');}
+				);
+			}
+			
+			function forceInitialState(){
+				forceDBandCacheInitialState(function(e){alert(e);},function(e){alert(e);});
 			}
 			
             document.addEventListener('deviceready', function() {
-				// Set cache to show debugging
-				ImgCache.options.debug = true;
-				ImgCache.init(function(){
-					console.log('Cache OK!');
-				}, function(){
-					console.log('Problems with Cache!');
-				});
+				regularDBandCacheRoutine(function(e){alert(e);},function(e){alert(e);},function(e){alert(e);});
+			}, false);
+			
+			document.addEventListener('resume', function() {
+				regularDBandCacheRoutine(function(e){alert(e);},function(e){alert(e);},function(e){alert(e);});
+			}, false);
+			
+			document.addEventListener('online', function() {
+				regularDBandCacheRoutine(function(e){alert(e);},function(e){alert(e);},function(e){alert(e);});
 			}, false);
 			
         </script>
