@@ -107,8 +107,8 @@
 			// soft populate base tables
 			function softPopulateDB(tx) {
 				tx.executeSql('CREATE TABLE IF NOT EXISTS VIDEOS (id unique, title, video, thumbnail)');
-				tx.executeSql('CREATE TABLE IF NOT EXISTS IMGS (blobid unique, blobkey, title, description)');
-				tx.executeSql('CREATE TABLE IF NOT EXISTS PROFS (blobid unique, blobkey, title, description)');
+				tx.executeSql('CREATE TABLE IF NOT EXISTS IMGS (id unique, blobkey, title, description)');
+				tx.executeSql('CREATE TABLE IF NOT EXISTS PROFS (id unique, blobkey, title, description)');
 			}
 			
 			// drops and creates VIDEOS
@@ -120,13 +120,13 @@
 			// drops and creates IMGS
 			function populateIMGS(tx) {
                 tx.executeSql('DROP TABLE IF EXISTS IMGS');				
-                tx.executeSql('CREATE TABLE IF NOT EXISTS IMGS (blobid unique, blobkey, title, description)');				
+                tx.executeSql('CREATE TABLE IF NOT EXISTS IMGS (id unique, blobkey, title, description)');				
 			}
 			
 			// drops and creates PROFS
 			function populatePROFS(tx) {
                 tx.executeSql('DROP TABLE IF EXISTS PROFS');				
-                tx.executeSql('CREATE TABLE IF NOT EXISTS PROFS (blobid unique, blobkey, title, description)');			
+                tx.executeSql('CREATE TABLE IF NOT EXISTS PROFS (id unique, blobkey, title, description)');			
 			}
 
 			// get table hash
@@ -211,7 +211,7 @@
 				function inputImgsTx(tx){
 					for(var i=0;i<items.length;i++){
 						var item = items[i];
-						var insertClause = 'INSERT INTO IMGS (blobid unique, blobkey, title, description) VALUES ('+item['blob-id']+',"'+item['blob-key']+'","'+item.title+'","'+item.description+'")';
+						var insertClause = 'INSERT INTO IMGS (id unique, blobkey, title, description) VALUES ('+item['blob-id']+',"'+item['blob-key']+'","'+item.title+'","'+item.description+'")';
 						// debug insert clause
 						console.log(insertClause);
 						tx.executeSql(insertClause);
@@ -234,7 +234,7 @@
 				function inputProfsTx(tx){
 					for(var i=0;i<items.length;i++){
 						var item = items[i];
-						var insertClause = 'INSERT INTO PROFS (blobid unique, blobkey, title, description) VALUES ('+item['blob-id']+',"'+item['blob-key']+'","'+item.title+'","'+item.description+'")';
+						var insertClause = 'INSERT INTO PROFS (id unique, blobkey, title, description) VALUES ('+item['blob-id']+',"'+item['blob-key']+'","'+item.title+'","'+item.description+'")';
 						// debug insert clause
 						console.log(insertClause);
 						tx.executeSql(insertClause);
