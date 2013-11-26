@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <widget xmlns     = "http://www.w3.org/ns/widgets"
         xmlns:gap = "http://phonegap.com/ns/1.0"
-        version   = "1.0.6"
+        version   = "1.0.7"
 	    id = "br.com.customapps4you.testvideogalery"
         versionCode="1" 
 	>
@@ -22,8 +22,8 @@
 	<access origin="*" />
 	
 	<gap:plugin name="com.phonegap.plugins.facebookconnect">
-		<param name="APP_ID" value="586721204714930" />
-		<param name="APP_NAME" value="testfbso" />
+		<param name="APP_ID" value="452927928149242" />
+		<param name="APP_NAME" value="manuellahairclub" />
 	</gap:plugin>
 	
 </widget>
