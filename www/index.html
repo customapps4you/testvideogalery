@@ -809,7 +809,6 @@
 			
             document.addEventListener('deviceready', function() {
 				regularDBandCacheRoutine(function(e){alert(e);},function(e){alert(e);},function(e){alert(e);});
-				initFB();
 			}, false);
 			
 			document.addEventListener('resume', function() {
@@ -822,8 +821,8 @@
 			
         </script>
 	
-	<script src="js/cdv-plugin-fb-connect.js"></script>
-	<script src="js/facebook-js-sdk.js"></script>
+	<script type="text/javascript" src="js/cdv-plugin-fb-connect.js"></script>
+	<script type="text/javascript" src="js/facebook-js-sdk.js"></script>
 	<script type="text/javascript" src="js/hashing.js"></script>
 	<script type="text/javascript" src="js/jquery-1.7.2.min.js"></script>
 	<script type="text/javascript" src="js/imgcache.js"></script>
